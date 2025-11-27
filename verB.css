@@ -1,0 +1,57 @@
+/* Popup estilo moderno */
+.swal2-popup.swal-modern {
+    border-radius: 45px;
+    background: linear-gradient(180deg, #9df0ff, #fcffff 60%);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    padding: 30px 25px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.875rem;
+    width: 500px !important;
+    text-align: center;
+}
+
+
+
+/* Botón */
+.swal2-popup.swal-modern .swal2-confirm {
+    background: #2cb4e9 !important; 
+    color: #fff !important;
+    font-weight: 600 !important;
+    border-radius: 16px !important;
+    padding: 12px 28px !important;
+    font-size: 0.875rem !important;
+    font-family: 'Poppins', sans-serif !important;
+    width: auto !important;
+    min-width: 140px;
+    margin: 0 auto !important;
+    display: block !important;
+    transition: all 0.3s ease !important;
+    
+}
+
+.swal2-popup.swal-modern .swal2-confirm:hover {
+    background: #0093ce !important;
+}
+/* Botón VER (azul) */
+.btn-ver {
+    background-color: #c4e6f7;   
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1588bd; 
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-ver:hover {
+    background-color:  #59c7e9;  /* Azul más oscuro */
+    transform: scale(1.05);
+}
+
+/* Ícono centrado */
+.btn-ver i {
+    font-size: 14px;
+}

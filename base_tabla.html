@@ -1,0 +1,487 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Panel de Control{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    <link href='https://unpkg.com/boxicons@2.0.9/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="{% static 'css/tablas/alerta.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/panel/styls.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tablas/list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tablas/verB.css' %}">
+    <link rel="stylesheet" href="{% static 'css/panel/perfil.css' %}">
+    <link rel="stylesheet" href="{% static 'css/panel/notificaciones.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="{% static 'css/tablas/filtros-personalizados.css' %}">
+    <link rel="stylesheet" href="{% static 'css/accessibility/sienna.css' %}">
+    <style>
+        /* Estilos para SweetAlert2 sin fondo */
+        .swal2-no-background {
+            padding: 0 !important;
+            background: transparent !important;
+        }
+        .swal2-container {
+            backdrop-filter: blur(2px);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+    
+</head>
+<body>
+    {% include 'panel/sidebar.html' %}
+    <!-- Navbar con buscador -->
+    <nav class="main-navbar">
+        <div class="navbar-content">
+            <form class="navbar-search" action="#" method="get">
+                <span class="navbar-search-icon">
+                    <i class="bx bx-search"></i>
+                </span>
+                <input type="text" name="q" placeholder="Buscar...." class="navbar-search-input">
+            </form>
+            <button class="navbar-bell-btn" id="btnNotificaciones" title="Notificaciones">
+                <i class="bx bxs-bell navbar-bell-icon"></i>
+                <span class="noti-badge" id="noti-badge" style="display: none;">0</span>
+            </button>
+            <a href="{% url 'backup_home' %}" class="navbar-icon-btn-backup" id="btnBackup" title="Sistema de Backups">
+                <i class="bx bxs-data"></i>
+            </a>
+            <button class="navbar-icon-btn" id="btnCamara" title="Cámara de Seguridad">
+                <i class="bx bxs-cctv"></i>
+            </button>
+            <button class="navbar-icon-btn" id="btnAyuda" title="Ayuda">
+                <i class="bx bxs-help-circle"></i>
+            </button>
+            <button class="navbar-icon-btn" id="btnRobot" title="Asistente Virtual">
+                <i class="bx bxs-bot"></i>
+            </button>
+            <div class="navbar-user" id="navbar-user-dropdown">
+                {% if request.session.usuario_imagen and request.session.usuario_imagen != '/static/img/user.jpg' %}
+                    <img src="{{ request.session.usuario_imagen }}" alt="User" class="navbar-user-img" onerror="this.src='{% static 'img/user.jpg' %}'">
+                {% else %}
+                    <img src="{% static 'img/user.jpg' %}" alt="User" class="navbar-user-img">
+                {% endif %}
+                <span class="navbar-user-name">
+                    {% if request.session.usuario_nombre %}
+                        {{ request.session.usuario_nombre }}
+                    {% else %}
+                        Usuario
+                    {% endif %}
+                </span>
+                <i class="bx bx-chevron-down"></i>
+                
+                <!-- Dropdown del perfil -->
+                <div class="user-dropdown-menu" id="user-dropdown-menu">
+                    <div class="user-dropdown-header">
+                        {% if request.session.usuario_imagen and request.session.usuario_imagen != '/static/img/user.jpg' %}
+                            <img src="{{ request.session.usuario_imagen }}" alt="User" class="user-dropdown-img" onerror="this.src='{% static 'img/user.jpg' %}'">
+                        {% else %}
+                            <img src="{% static 'img/user.jpg' %}" alt="User" class="user-dropdown-img">
+                        {% endif %}
+                        <div class="user-dropdown-info">
+                            <div class="user-dropdown-name">
+                                {% if request.session.usuario_nombre %}
+                                    {{ request.session.usuario_nombre }}
+                                {% else %}
+                                    Usuario
+                                {% endif %}
+                            </div>
+                            <div class="user-dropdown-role">
+                                {% if request.session.usuario_rol %}
+                                    {{ request.session.usuario_rol }}
+                                {% else %}
+                                    Rol no definido
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="user-dropdown-divider"></div>
+                    
+                    <div class="user-dropdown-items">
+                        <a href="#" class="user-dropdown-item" id="btn-ver-perfil">
+                            <i class="bx bx-user"></i>
+                            <span>Ver Perfil</span>
+                        </a>
+                        <a href="{% url 'logout' %}" class="user-dropdown-item user-dropdown-logout">
+                            <i class="bx bx-log-out"></i>
+                            <span>Cerrar Sesión</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Modal de Perfil -->
+    <div class="profile-modal-overlay" id="profile-modal-overlay">
+        <div class="profile-modal">
+            <div class="profile-modal-header">
+                <h3>Perfil de Usuario</h3>
+                <button class="profile-modal-close" id="profile-modal-close">
+                    <i class="bx bx-x"></i>
+                </button>
+            </div>
+            <div class="profile-modal-body">
+                <div class="profile-avatar">
+                    {% if request.session.usuario_imagen and request.session.usuario_imagen != '/static/img/user.jpg' %}
+                        <img src="{{ request.session.usuario_imagen }}" alt="Avatar" class="profile-avatar-img" onerror="this.src='{% static 'img/user.jpg' %}'">
+                    {% else %}
+                        <img src="{% static 'img/user.jpg' %}" alt="Avatar" class="profile-avatar-img">
+                    {% endif %}
+                </div>
+                <div class="profile-info" id="profile-info">
+                    <!-- Información del perfil que se muestra directamente -->
+                    <div class="profile-field">
+                        <label><i class="bx bx-user"></i> Nombre:</label>
+                        <span id="profile-nombre">
+                            {% if request.session.usuario_nombre %}
+                                {{ request.session.usuario_nombre }}
+                            {% else %}
+                                No disponible
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="profile-field">
+                        <label><i class="bx bx-briefcase"></i> Rol:</label>
+                        <span id="profile-rol">
+                            {% if request.session.usuario_rol %}
+                                {{ request.session.usuario_rol }}
+                            {% else %}
+                                No definido
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% if request.session.usuario_documento %}
+                    <div class="profile-field">
+                        <label><i class="bx bx-id-card"></i> Documento:</label>
+                        <span id="profile-documento">{{ request.session.usuario_documento }}</span>
+                    </div>
+                    {% endif %}
+                    {% if request.session.usuario_correo %}
+                    <div class="profile-field">
+                        <label><i class="bx bx-envelope"></i> Correo:</label>
+                        <span id="profile-correo">{{ request.session.usuario_correo }}</span>
+                    </div>
+                    {% endif %}
+                    {% if request.session.usuario_telefono %}
+                    <div class="profile-field">
+                        <label><i class="bx bx-phone"></i> Teléfono:</label>
+                        <span id="profile-telefono">{{ request.session.usuario_telefono }}</span>
+                    </div>
+                    {% endif %}
+
+                </div>
+                                
+                <!-- Botón de Editar Perfil -->
+                <div class="profile-modal-footer">
+                    <button class="btn-edit-profile" id="btn-edit-profile" data-usuario-id="{{ request.session.usuario_id }}">
+                        <i class="bx bx-edit"></i>
+                        <span>Editar Perfil</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </nav>
+
+    <!-- Contenedor de notificaciones centrado estilo iPhone -->
+    <div class="noti-board-iphone-container" id="noti-board-container">
+        <div class="noti-board-iphone-header">
+            <div class="noti-header-left">
+                <i class="fa-solid fa-bell"></i>
+                <span>Notificaciones</span>
+            </div>
+            <button class="noti-close-btn" id="btnCerrarNotificaciones" title="Cerrar">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+
+        <div class="noti-filters">
+            <button class="noti-filter-btn active" data-filter="nuevas" id="filterNuevas">
+                <i class="fa-solid fa-bell"></i>
+                <span>Nuevas</span>
+                <span class="filter-badge" id="badgeNuevas">0</span>
+            </button>
+            <button class="noti-filter-btn" data-filter="anteriores" id="filterAnteriores">
+                <i class="fa-solid fa-check-double"></i>
+                <span>Anteriores</span>
+                <span class="filter-badge" id="badgeAnteriores">0</span>
+            </button>
+        </div>
+
+        <div class="noti-stack-list" id="noti-board-list"></div>
+    </div>
+
+    <!-- Overlay para las notificaciones -->
+    <div class="noti-overlay" id="noti-overlay"></div>
+
+    <div class="main-content">
+        <section id="content">
+            {% block content %}{% endblock %}
+        </section>
+    </div>
+
+     <!-- Footer adaptable -->
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-bottom">
+                <div class="footer-info-inline">
+                    <span><i class="bx bx-phone"></i> (+57) 320 456 7890</span>
+                    <span><i class="bx bx-envelope"></i> contacto@plazareal.com.co</span>
+                    <span><i class="bx bx-map"></i> Calle 10 # 12-45, Sogamoso, Boyacá</span>
+                </div>
+                <p>© Copyright 2025 Hotel Plaza Real. Todos los derechos reservados.</p>
+                <div class="social-icons">
+                    <a href="#" title="LinkedIn">
+                        <i class="bx bxl-linkedin"></i>
+                    </a>
+                    <a href="#" title="Instagram">
+                        <i class="bx bxl-instagram"></i>
+                    </a>
+                    <a href="#" title="Facebook">
+                        <i class="bx bxl-facebook"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{% static 'JS/tablas/alerts.js' %}"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="{% static 'JS/panel/scrit.js' %}"></script>
+    <script> window.logoUrl = "{% static 'img/imglog2 - copia.png' %}"; </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="{% static 'JS/tablas/botones.js' %}"></script>
+    <script src="{% static 'JS/panel/perfil.js' %}"></script>
+    <script src="{% static 'JS/panel/notificaciones.js' %}"></script>
+    <script src="{% static 'JS/tablas/filtros-personalizados.js' %}"></script>
+    <script src="{% static 'JS/accessibility/sienna-config.js' %}"></script>
+    <script src="{% static 'JS/accessibility/sienna.js' %}"></script>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+        // Configuración de URLs para las notificaciones
+        window.notificacionesUrl = "{% url 'notificaciones_importantes' %}";
+        window.notificacionesUrls = {
+            "reserva": "{% url 'listar_reservas' %}",
+            "tarea": "{% url 'lista_tareas' %}",
+            "producto": "{% url 'listar_productos' %}",
+            "habitacion": "{% url 'listar_habitaciones' %}",
+            "capacitacion": "{% url 'listar_capacitaciones' %}",
+            "asignaciontarea": "{% url 'listar_asignaciontarea' %}"
+        };
+    </script>
+    <script>
+       $(document).ready(function () {
+        var tablaId = "{% block tabla_id %}{% endblock %}";
+        if ($(tablaId).length) {
+            var table = $(tablaId).DataTable({
+                stateSave: true,
+                language: {
+                    search: "Buscar:",
+                    searchPlaceholder: "Buscar en los campos...",
+                    lengthMenu: "Mostrar _MENU_ registros por página",
+                    zeroRecords: "No se encontraron resultados",
+                    info: "Mostrando página _PAGE_ de _PAGES_",
+                    infoEmpty: "No hay registros disponibles",
+                    infoFiltered: "(filtrado de _MAX_ registros totales)",
+                    paginate: {
+                        previous: "Anterior",
+                        next: "Siguiente"
+                    }
+                },
+                order: [[0, 'asc']],
+                pageLength: 5,
+                lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Todos"]],
+                columnDefs: [
+                    { orderable: false, targets: 2 } // Personaliza según tu tabla
+                ]
+            });
+           
+        }
+    });
+    // Mensajes de Django con SweetAlert2
+{% if messages %}
+    {% for message in messages %}
+        {% if message.tags == 'success' %}
+            window.professionalAlert.fire({
+                html: `
+                    <div class="professional-popup-card">
+                        <div class="professional-popup-card-header professional-popup-card-header-success">
+                            <span class="professional-popup-card-icon">
+                                <svg viewBox="0 0 48 48" fill="none" width="48" height="48">
+                                    <circle cx="24" cy="24" r="24" fill="#0cc915b0"/>
+                                    <path d="M14 25.5L21 32L34 19" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                            <div class="professional-popup-card-title">¡Éxito!</div>
+                        </div>
+                        <div class="professional-popup-card-body">
+                            <div class="professional-popup-card-text">{{ message|escapejs }}</div>
+                        </div>
+                    </div>
+                `,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal2-no-background'
+                },
+                background: 'transparent',
+                timer: 3000,
+                timerProgressBar: true
+            });
+        {% elif message.tags == 'error' or message.tags == 'danger' %}
+            window.professionalAlert.fire({
+                html: `
+                    <div class="professional-popup-card">
+                        <div class="professional-popup-card-header">
+                            <span class="professional-popup-card-icon">
+                                <svg viewBox="0 0 48 48" fill="none" width="48" height="48">
+                                    <circle cx="24" cy="24" r="24" fill="#f44336"/>
+                                    <path d="M16 16L32 32M32 16L16 32" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+                                </svg>
+                            </span>
+                            <div class="professional-popup-card-title">Error en la Operación</div>
+                        </div>
+                        <div class="professional-popup-card-body">
+                            <div class="professional-popup-card-text" style="margin-bottom: 1.5rem;">{{ message|escapejs }}</div>
+                            <div class="professional-popup-card-btns">
+                                <button onclick="Swal.close()" class="professional-popup-card-btn">
+                                    Entendido
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal2-no-background'
+                },
+                background: 'transparent'
+            });
+        {% elif message.tags == 'warning' %}
+            window.professionalAlert.fire({
+                html: `
+                    <div class="professional-popup-card">
+                        <div class="professional-popup-card-header">
+                            <div class="professional-popup-card-title">Advertencia</div>
+                        </div>
+                        <div class="professional-popup-card-body">
+                            <div class="professional-popup-card-text" style="margin-bottom: 1.5rem;">{{ message|escapejs }}</div>
+                            <div class="professional-popup-card-btns">
+                                <button onclick="Swal.close()" class="professional-popup-card-btn">
+                                    Entendido
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal2-no-background'
+                },
+                background: 'transparent'
+            });
+        {% else %}
+            window.professionalAlert.fire({
+                html: `
+                    <div class="professional-popup-card">
+                        <div class="professional-popup-card-header" style="background: #17a2b8;">
+                            <span class="professional-popup-card-icon">
+                                <svg viewBox="0 0 48 48" fill="none" width="48" height="48">
+                                    <circle cx="24" cy="24" r="24" fill="#17a2b8"/>
+                                    <path d="M24 22V34M24 14V18" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+                                </svg>
+                            </span>
+                            <div class="professional-popup-card-title">Información</div>
+                        </div>
+                        <div class="professional-popup-card-body">
+                            <div class="professional-popup-card-text" style="margin-bottom: 1.5rem;">{{ message|escapejs }}</div>
+                            <div class="professional-popup-card-btns">
+                                <button onclick="Swal.close()" class="professional-popup-card-btn" style="background: #17a2b8;">
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal2-no-background'
+                },
+                background: 'transparent'
+            });
+        {% endif %}
+    {% endfor %}
+{% endif %}
+    </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const params = new URLSearchParams(window.location.search);
+    const highlightId = params.get('highlight_id');
+    if (highlightId) {
+        const row = document.querySelector(`[data-row-id="${highlightId}"]`);
+        if (row) {
+            row.classList.add('highlight-row');
+            // Solo hacer scroll si no es una recarga de página
+            if (!sessionStorage.getItem('pageReloaded')) {
+                row.scrollIntoView({behavior: "smooth", block: "center"});
+            }
+            setTimeout(() => row.classList.remove('highlight-row'), 3500);
+            
+            // Limpiar el parámetro de la URL sin recargar la página
+            const newUrl = window.location.pathname + window.location.search.replace(/[?&]highlight_id=[^&]*/, '').replace(/^&/, '?');
+            window.history.replaceState({}, '', newUrl);
+        }
+    }
+    
+    // Restaurar la posición de scroll guardada
+    const savedScrollPos = sessionStorage.getItem('scrollPos');
+    if (savedScrollPos && !highlightId) {
+        window.scrollTo(0, parseInt(savedScrollPos));
+    }
+});
+
+// Guardar la posición de scroll antes de recargar o navegar
+window.addEventListener('beforeunload', function() {
+    sessionStorage.setItem('scrollPos', window.pageYOffset.toString());
+    sessionStorage.setItem('pageReloaded', 'true');
+});
+
+// Limpiar el flag después de un corto tiempo
+setTimeout(() => {
+    sessionStorage.removeItem('pageReloaded');
+}, 1000);
+
+// Mostrar footer solo al final del scroll
+function handleFooterVisibility() {
+    const footer = document.querySelector('.main-footer');
+    if (!footer) return;
+    
+    const scrollHeight = document.documentElement.scrollHeight;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const clientHeight = document.documentElement.clientHeight;
+    
+    // Mostrar footer cuando esté cerca del final (últimos 100px)
+    if (scrollHeight - scrollTop - clientHeight < 100) {
+        footer.classList.add('show');
+    } else {
+        footer.classList.remove('show');
+    }
+}
+
+window.addEventListener('scroll', handleFooterVisibility);
+window.addEventListener('resize', handleFooterVisibility);
+// Verificar al cargar la página
+handleFooterVisibility();
+</script>
+
+</body>
+</html>
